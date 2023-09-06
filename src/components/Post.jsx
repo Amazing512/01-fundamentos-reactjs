@@ -1,56 +1,118 @@
+import { useState } from "react";
+
+import { format, formatDistanceToNow } from "date-fns";
+import ptBR from "date-fns/locale/pt-BR";
+
 import { Avatar } from "./Avatar";
 import { Comment } from "./Comment";
 import styles from "./Post.module.css";
 
-export function Post(props) {
+export function Post({ author, publishedAt, content }) {
+  const [comments, setComments] = useState(["Post muito bacana, hein?"]);
+
+  const [newCommentText, setNewCommentText] = useState("");
+
+  const publishedDateFormatted = format(
+    publishedAt,
+    "d 'de' LLLL 'às' HH:mm'h'",
+    { locale: ptBR }
+  );
+
+  const publishedDateRelativeToNow = formatDistanceToNow(publishedAt, {
+    locale: ptBR,
+    addSuffix: true,
+  });
+
+  function handleNewCommentChange() {
+    event.target.setCustomValidity("");
+    setNewCommentText(event.target.value);
+  }
+
+  function handleNewCommentInvalid() {
+    event.target.setCustomValidity("Este campo é obrigatório!");
+  }
+
+  function handleCreateNewComment() {
+    event.preventDefault();
+
+    setComments((comments) => [...comments, newCommentText]);
+    setNewCommentText("");
+  }
+
+  function deleteComment(commentToDelete) {
+    console.log(`Deletar comentário ${comment}`);
+    setComments((comments) => {
+      const commentsWithoutDeletedOne = comments.filter(
+        (comment) => comment !== commentToDelete
+      );
+
+      return commentsWithoutDeletedOne;
+    });
+  }
+
+  const isNewCommentEmpty = newCommentText.trim().length === 0;
+
   return (
     <article className={styles.post}>
       <header>
         <div className={styles.author}>
-          <Avatar src='https://images.unsplash.com/photo-1679032128252-8ddc3cc4f0c5?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=500&q=50' />
+          <Avatar src={author.avatarUrl} />
           <div className={styles.authorInfo}>
-            <strong>Diego Fernandes</strong>
-            <span>Web Developer</span>
+            <strong>{author.name}</strong>
+            <span>{author.role}</span>
           </div>
         </div>
 
-        <time title='11 de maio às 08:13' dateTime='2022-05-11 08:13:30'>
-          Publicado há 1h
+        <time
+          title={publishedDateFormatted}
+          dateTime={publishedAt.toISOString()}
+        >
+          Publicado {publishedDateRelativeToNow}
         </time>
       </header>
 
       <div className={styles.content}>
-        <p>Fala galeraa 👋</p>
-
-        <p>
-          Acabei de subir mais um projeto no meu portifa. É um projeto que fiz
-          no NLW Return, evento da Rocketseat. O nome do projeto é DoctorCare 🚀
-        </p>
-
-        <p>
-          <a href=''>jane.design/doctorcare</a>
-        </p>
-
-        <p>
-          <a href=''>#novoprojeto</a> <a href=''>#nlw</a>{" "}
-          <a href=''>#rocketseat</a>
-        </p>
+        {content.map((line, index) => {
+          if (line.type === "paragraph") {
+            return <p key={line.content}>{line.content}</p>;
+          }
+          if (line.type === "link") {
+            return (
+              <p key={line.content}>
+                <a href=''>{line.content}</a>
+              </p>
+            );
+          }
+        })}
       </div>
 
-      <form className={styles.commentForm}>
+      <form onSubmit={handleCreateNewComment} className={styles.commentForm}>
         <strong>Deixe seu comentário</strong>
 
-        <textarea placeholder='Deixe um comentário' />
+        <textarea
+          name='comment'
+          placeholder='Deixe seu feedback'
+          value={newCommentText}
+          onChange={handleNewCommentChange}
+          onInvalid={handleNewCommentInvalid}
+          required
+        />
 
         <footer>
-          <button type='submit'>Publicar</button>
+          <button type='submit' disabled={isNewCommentEmpty}>
+            Publicar
+          </button>
         </footer>
       </form>
 
       <div className={styles.commentList}>
-        <Comment />
-        <Comment />
-        <Comment />
+        {comments.map((comment, index) => (
+          <Comment
+            key={comment}
+            content={comment}
+            onDeleteComment={deleteComment}
+          />
+        ))}
       </div>
     </article>
   );
